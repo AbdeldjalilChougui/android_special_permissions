@@ -173,8 +173,15 @@ On API 21-28 there is no separate background permission, so the status is
   one of your activities declares `supportsPictureInPicture`.
 - Tests cover the Dart API (mocked `MethodChannel`) and the pure Kotlin logic
   (component parsing, API-level rules, intent fallback order, resume
-  tracking, argument errors) with JUnit. The Android system calls are
-  compiled but not run under test; there is no Robolectric suite.
+  tracking, argument errors) with JUnit. The example app also has an
+  emulator integration test (`example/integration_test/`, run with
+  `dart run tool/run_on_device.dart <applicationId>` from `example/`) that
+  flips each access with adb (`appops`, `cmd notification`, `deviceidle`,
+  `settings`, `pm grant`) and checks every status, every Settings screen and
+  the `request()` round trip.
+
+**Tested on:** Android Emulator, Pixel 10 system image (`sdk_gphone16k_x86_64`),
+API 37. Not yet tested on a physical phone or OEM Settings apps.
 
 ## License
 
