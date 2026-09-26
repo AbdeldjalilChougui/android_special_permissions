@@ -12,8 +12,15 @@ internal class SettingsIntentsTest {
     private val appDetails = IntentSpec(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
     private val settingsHome = IntentSpec(Settings.ACTION_SETTINGS)
 
-    private fun open(p: SpecialPermission, sdk: Int, cls: String? = null) =
-        SettingsIntents.candidates(p, sdk, pkg, cls, SettingsIntents.Purpose.OPEN_SETTINGS)
+    private fun open(p: SpecialPermission, sdk: Int, cls: String? = null, a11yDetailsAllowed: Boolean = false) =
+        SettingsIntents.candidates(
+            p,
+            sdk,
+            pkg,
+            cls,
+            SettingsIntents.Purpose.OPEN_SETTINGS,
+            accessibilityDetailsAllowed = a11yDetailsAllowed,
+        )
 
     private fun request(p: SpecialPermission, sdk: Int, cls: String? = null, batteryDeclared: Boolean = false) =
         SettingsIntents.candidates(p, sdk, pkg, cls, SettingsIntents.Purpose.REQUEST, batteryDeclared)
@@ -54,8 +61,8 @@ internal class SettingsIntentsTest {
     }
 
     @Test
-    fun accessibility_api33WithService_opensDetailsPage() {
-        val list = open(SpecialPermission.ACCESSIBILITY_SERVICE, 33, ".MyService")
+    fun accessibility_api33WithServiceAndPermission_opensDetailsPage() {
+        val list = open(SpecialPermission.ACCESSIBILITY_SERVICE, 33, ".MyService", a11yDetailsAllowed = true)
         assertEquals(
             IntentSpec(
                 SettingsIntents.ACTION_ACCESSIBILITY_DETAILS_SETTINGS,
@@ -64,6 +71,16 @@ internal class SettingsIntentsTest {
             list[0],
         )
         assertEquals(IntentSpec(Settings.ACTION_ACCESSIBILITY_SETTINGS), list[1])
+    }
+
+    // Regression (found on an API 37 emulator): the details page needs the
+    // signature|installer permission OPEN_ACCESSIBILITY_DETAILS_SETTINGS, so for
+    // ordinary apps every attempt was a logged "Permission Denial".
+    @Test
+    fun accessibility_withoutDetailsPermission_skipsDetailsPage() {
+        val list = open(SpecialPermission.ACCESSIBILITY_SERVICE, 37, ".MyService")
+        assertEquals(IntentSpec(Settings.ACTION_ACCESSIBILITY_SETTINGS), list[0])
+        assertTrue(list.none { it.action == SettingsIntents.ACTION_ACCESSIBILITY_DETAILS_SETTINGS })
     }
 
     @Test

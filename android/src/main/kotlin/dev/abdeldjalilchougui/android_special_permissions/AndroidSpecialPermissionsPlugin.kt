@@ -6,8 +6,10 @@ import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -128,6 +130,7 @@ class AndroidSpecialPermissionsPlugin :
             activity.packageName,
             serviceClassName.value,
             SettingsIntents.Purpose.OPEN_SETTINGS,
+            accessibilityDetailsAllowed = canOpenAccessibilityDetails(activity),
         )
         result.success(launch(activity, candidates))
     }
@@ -151,6 +154,7 @@ class AndroidSpecialPermissionsPlugin :
             SettingsIntents.Purpose.REQUEST,
             batteryDialogDeclared = permission == SpecialPermission.IGNORE_BATTERY_OPTIMIZATIONS &&
                 checker.declares(Manifest.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS),
+            accessibilityDetailsAllowed = canOpenAccessibilityDetails(activity),
         )
         waiter.start(PendingRequest(permission, serviceClassName.value, result))
         if (!launch(activity, candidates)) {
@@ -226,6 +230,10 @@ class AndroidSpecialPermissionsPlugin :
         data?.let { intent.data = Uri.parse(it) }
         extras.forEach { (key, value) -> intent.putExtra(key, value) }
     }
+
+    private fun canOpenAccessibilityDetails(activity: Activity): Boolean =
+        ContextCompat.checkSelfPermission(activity, SettingsIntents.PERMISSION_OPEN_ACCESSIBILITY_DETAILS_SETTINGS) ==
+            PackageManager.PERMISSION_GRANTED
 
     private fun isBusy() = waiter.isWaiting || pendingRole != null
 

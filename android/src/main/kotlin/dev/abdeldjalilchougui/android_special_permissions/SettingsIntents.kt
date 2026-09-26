@@ -11,8 +11,15 @@ data class IntentSpec(
 
 /** Chooses the Settings screen for each permission, most specific first. */
 object SettingsIntents {
-    /** Per-service accessibility page; not in the public SDK, so always resolve-checked. */
+    /**
+     * Per-service accessibility page. Settings only starts it for callers holding
+     * [PERMISSION_OPEN_ACCESSIBILITY_DETAILS_SETTINGS], so it is offered only then.
+     */
     const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS = "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"
+
+    /** Signature|installer permission required to start [ACTION_ACCESSIBILITY_DETAILS_SETTINGS]. */
+    const val PERMISSION_OPEN_ACCESSIBILITY_DETAILS_SETTINGS =
+        "android.permission.OPEN_ACCESSIBILITY_DETAILS_SETTINGS"
 
     /** Same value as `Intent.EXTRA_COMPONENT_NAME`; the details page reads it as a flattened string. */
     const val EXTRA_COMPONENT_NAME = "android.intent.extra.COMPONENT_NAME"
@@ -44,6 +51,9 @@ object SettingsIntents {
      * [batteryDialogDeclared] tells whether the app declares
      * `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, without which the direct
      * dialog does nothing.
+     *
+     * [accessibilityDetailsAllowed] tells whether the app holds
+     * [PERMISSION_OPEN_ACCESSIBILITY_DETAILS_SETTINGS]; ordinary apps do not.
      */
     fun candidates(
         permission: SpecialPermission,
@@ -52,6 +62,7 @@ object SettingsIntents {
         serviceClassName: String?,
         purpose: Purpose,
         batteryDialogDeclared: Boolean = false,
+        accessibilityDetailsAllowed: Boolean = false,
     ): List<IntentSpec> {
         val pkg = packageUri(packageName)
         val specific: List<IntentSpec> = when (permission) {
@@ -62,7 +73,7 @@ object SettingsIntents {
             }
             SpecialPermission.OVERLAY -> packageThenPlain(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkg)
             SpecialPermission.ACCESSIBILITY_SERVICE -> buildList {
-                if (sdk >= ACCESSIBILITY_DETAILS_MIN_SDK && serviceClassName != null) {
+                if (sdk >= ACCESSIBILITY_DETAILS_MIN_SDK && serviceClassName != null && accessibilityDetailsAllowed) {
                     add(
                         IntentSpec(
                             ACTION_ACCESSIBILITY_DETAILS_SETTINGS,

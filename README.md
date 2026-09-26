@@ -112,7 +112,7 @@ is authoritative, so check it before you ship.
 | --- | --- | --- | --- | --- |
 | `usageAccess` | `PACKAGE_USAGE_STATS` | 5.0+ (API 21) | "Usage access" list; on API 29+ the app's own toggle when the device honours the package URI | The author knows of no dedicated Console form, but usage data falls under the User Data policy: show a prominent disclosure and get consent before sending the user there. |
 | `overlay` | `SYSTEM_ALERT_WINDOW` | 6.0+ (API 23) | "Display over other apps". Android 11+ ignores the package URI and shows the list | No declaration form. Overlays must not obscure system UI or be used deceptively. |
-| `accessibilityService` | an `AccessibilityService` guarded by `BIND_ACCESSIBILITY_SERVICE` | all | "Accessibility" settings; on API 33+ the service's own page when Settings allows it. Enabling shows a "full control" warning. On Android 13+, sideloaded apps first need "Allow restricted settings" in App info. | **Declaration required** (Accessibility API form in Play Console) plus prominent disclosure, unless the app is an accessibility tool (`isAccessibilityTool`). |
+| `accessibilityService` | an `AccessibilityService` guarded by `BIND_ACCESSIBILITY_SERVICE` | all | "Accessibility" settings. The service's own page (API 33+) is used only by apps holding the system `OPEN_ACCESSIBILITY_DETAILS_SETTINGS` permission. Enabling shows a "full control" warning. On Android 13+, sideloaded apps first need "Allow restricted settings" in App info. | **Declaration required** (Accessibility API form in Play Console) plus prominent disclosure, unless the app is an accessibility tool (`isAccessibilityTool`). |
 | `notificationListener` | a `NotificationListenerService` | all | "Notification access" list; on API 30+ the listener's own page when you pass `serviceClassName`. The restricted-settings gate also applies to sideloaded apps on Android 13+. | The author knows of no dedicated form; notification content is user data (User Data policy). |
 | `ignoreBatteryOptimizations` | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (for the direct dialog) | 6.0+ (API 23) | `request()`: a system dialog asking to let the app always run in the background. `openSettings()`: the "Battery optimization" list, where the user must switch the filter to all apps. | **Restricted.** Play allows the direct dialog only when Doze breaks the app's core function (see "acceptable use cases for exemptions" in Android's Doze documentation). Otherwise use `openSettings()`, which needs no permission. |
 | `exactAlarm` | `SCHEDULE_EXACT_ALARM` or `USE_EXACT_ALARM` | 12+ (API 31) | "Alarms & reminders" toggle for the app. Denied by default on Android 14+ for new installs. | `SCHEDULE_EXACT_ALARM` is user-granted. `USE_EXACT_ALARM` is auto-granted but **needs a declaration** and is limited to alarm-clock and calendar apps. |
@@ -156,9 +156,15 @@ On API 21-28 there is no separate background permission, so the status is
 - `request()` completes on the first resume after the app was paused. If the
   user comes back by another route, you still get the status at that moment.
 - The accessibility details page (`android.settings.ACCESSIBILITY_DETAILS_SETTINGS`)
-  and the picture-in-picture screen are not public SDK actions. They are tried
-  only when they resolve, and if Settings refuses to start them the plugin
-  falls back to the next screen.
+  requires the signature/installer permission `OPEN_ACCESSIBILITY_DETAILS_SETTINGS`,
+  so ordinary apps get the general Accessibility screen; the plugin only tries the
+  details page when the app holds that permission. The picture-in-picture screen
+  is not a public SDK action; it is tried only when it resolves, and if Settings
+  refuses to start it the plugin falls back to the next screen.
+- Android kills the app process when some accesses are revoked (seen for
+  "Install unknown apps" on the emulator; Android documents the same for
+  "Alarms & reminders"). A pending `request()` then never completes; check the
+  status again on the next launch.
 - OEM Settings apps vary. The fallback chain always ends at App info and then
   Settings home, but the most specific screen may be missing on some devices.
 - Roles need API 29+. The older dialer and SMS default-app APIs are not
